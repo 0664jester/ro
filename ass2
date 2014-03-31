@@ -1,0 +1,36 @@
+#include <stdio.h>
+
+/* 
+* bei 3 stelligen Zahlen gibt es eine Schleife, welche 3 mal durchlaufen ist.
+* Bei jedem Schleifedurchlauf wird ein Partialprodukt ermittelt und zum Produkt addiert.
+* Fuer jedes Partialprodukt braucht man den wert von a, welcher Stelle fuer Stelle
+* nach links verschoben wird.
+* Und man muss in jedem Schleifendurchlauf das niederwertigste Bit von b betrachten und sodann b um eine
+* eine Stelle nach rechts verschieben.
+*/ 
+
+
+int main()
+{
+
+	unsigned int a = 9;
+	unsigned int b = 2;
+  unsigned int mod = 2;
+  unsigned int i = 1;
+  
+  int sum = 0;
+  printf("%d\n", (a*b)%mod);
+  for(; i<=b; i++) 
+  {
+    sum = sum + a;
+  
+    while(sum >= mod) 
+    { 
+      sum = sum - mod;
+    }
+  }
+  printf("%d \n", sum);
+  
+  return 0;
+  }
+
