@@ -1,0 +1,33 @@
+#include <stdio.h>
+
+
+int main()
+{
+ unsigned short R4 = 1; //R4rodukt
+ unsigned short x = 3125; //zahl die 
+ unsigned short e = 600; //e  addiert wird
+ unsigned short m = 56; //modulo
+ unsigned short i = 0;
+
+
+
+//printf("%d\n", x);
+ L0:    if (i < 16)
+        {
+          if ((e>>i) & 0x01)
+          {
+            // muss den co prozessor übergeben werden
+            // dieser macht die berechnung
+            R4 = R4 * x % m; //a = 0xF0, b = 0xF1, m = 0xF2, p = 0xF3 
+          }
+          // muss den co prozessor übergeben werden
+          x = (x * x) % m;
+          i = i + 1;
+          goto L0;
+        }
+      
+  printf("%d", R4);
+
+
+  return 0;
+}
