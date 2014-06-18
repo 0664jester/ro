@@ -1,0 +1,246 @@
+ c   |  //********************************************************
+// Modulo
+//
+// ISE-Modell
+// Peter Lorenz, 2014
+// Literatur:
+//    BubbleSort.v by KC Posch and The Tutors
+//    Euklid.v by KC Posch and the Tutors
+//********************************************************
+
+`define INIT                          0
+`define IDLE                          1
+`define MULTIPLIER                    2
+`define COMPARE                       3
+`define ADD_TO_SUM                    4
+`define SHIFT                         5
+`define NUMBER_OF_SHIFTS              6
+`define INCREMENT_NUMBER_OF_SHIFTS    7
+`define INCREMENT_NUMBER_OF_SHIFTS_1  8
+`define DEDUCT_FROM_MULTIPLIER        9
+`define SUM_BIGGER_M_SHIFT           10
+`define DEDUCT_M_SHIFT_FROM_SUM      11
+`define DECREMENT_NUMBER_OF_SHIFTS   12
+
+`define NUM_STATE_BITS 4 //for the states
+
+module Modmodul(clk, ready, x, y, z, start, s);
+  input clk;
+  input [7:0] x;
+  input [7:0] y;
+  input [7:0] z;
+  input start;
+  output [7:0] s;
+  output ready;
+
+  /*** Die Register *********************/
+  reg [7:0] a; 
+  reg [7:0] b;
+  reg [8:0] m;
+  reg [7:0] i;
+  reg [7:0] c;
+  reg [7:0] s;
+  reg [7:0] t;
+
+  /*** Das Ausgangssignal ***************/
+  reg ready;
+
+  /*** (1) Fuer den Output auf der Konsole ****************/
+  reg [`NUM_STATE_BITS-1:0] present_state;
+
+  /*** (2) enter_new_state wird zu Beginn jedes **********/
+  /***     Taktzyklus' aufgerufen: ***********************/
+  task enter_new_state;
+    input [`NUM_STATE_BITS-1:0] this_state;
+      begin
+        #1;
+        present_state = this_state;
+        ready = 0;
+      end
+  endtask
+
+always
+ begin
+    @(posedge clk) enter_new_state(`IDLE);
+    ready = 1;
+    @(posedge clk) enter_new_state(`INIT);
+    a <= @(posedge clk) x;
+    b <= @(posedge clk) y;
+    m <= @(posedge clk) z;
+    i <= @(posedge clk) 9;
+    s <= @(posedge clk) 0;
+    t <= @(posedge clk) 0;
+    c <= @(posedge clk) 1;
+
+    if(start)
+      begin
+        @(posedge clk) enter_new_state(`MULTIPLIER);      
+        while(1<i)
+          begin
+            @(posedge clk) enter_new_state(`COMPARE);
+            if(b&c)
+              begin
+                @(posedge clk) enter_new_state(`ADD_TO_SUM);
+                s <= @(posedge clk) s + a;
+              end // if b&c
+            @(posedge clk) enter_new_state(`SHIFT);
+            a <= @(posedge clk) a<<1;
+            b <= @(posedge clk) b>>1;
+            i <= @(posedge clk) i-1;
+            @(posedge clk) enter_new_state(`MULTIPLIER);
+          end // while Multiplier
+
+
+        @(posedge clk) enter_new_state(`NUMBER_OF_SHIFTS);
+        while((m<<t)<s)
+          begin
+            @(posedge clk) enter_new_state(`INCREMENT_NUMBER_OF_SHIFTS);
+            t <= @(posedge clk) t+1;
+            @(posedge clk) enter_new_state(`NUMBER_OF_SHIFTS);
+          end // while
+
+        @(posedge clk) enter_new_state(`INCREMENT_NUMBER_OF_SHIFTS_1);
+        t <= @(posedge clk) t+1;
+
+
+        @(posedge clk) enter_new_state(`DEDUCT_FROM_MULTIPLIER);
+        while(t!=0)
+          begin
+            @(posedge clk) enter_new_state(`SUM_BIGGER_M_SHIFT);
+            if(s>=(m<<(t-1)))
+              begin
+                @(posedge clk) enter_new_state(`DEDUCT_M_SHIFT_FROM_SUM);
+                s <= @(posedge clk) s-(m<<(t-1));
+              end // if
+              @(posedge clk) enter_new_state(`DECREMENT_NUMBER_OF_SHIFTS);
+              t <= @(posedge clk) t-1;
+              @(posedge clk) enter_new_state(`DEDUCT_FROM_MULTIPLIER);
+        end // while 1
+        @(posedge clk) enter_new_state(`IDLE);
+      end // start
+ end // always
+endmodule
+
+
+//********************************************************
+// Testbed
+//********************************************************
+module testbed();
+
+  /*** Das Taktsignal ************************************/
+  reg clk;
+  initial clk = 0;         // Das Taktsignal beginnt mit 0
+  always  #50 clk = ~clk;  // Das Taktsignal wechselt alle
+                           // 50 Zeiteinheiten seinen Wert
+
+  /*** Eingang und Ausgang *******************************/
+  reg  [7:0] x;
+  reg  [7:0] y;
+  reg  [7:0] z;
+
+  reg  start;
+
+  wire [7:0] s;
+  wire ready;
+
+  /*** Fuer den Output auf der Konsole ********************/
+  task print_state_name;
+    input [`NUM_STATE_BITS-1:0] state_code;
+    begin
+      case(state_code)
+        `INIT:                        $write("INIT                        ");
+        `IDLE:                        $write("IDLE                        ");
+        `MULTIPLIER:                  $write("MULTIPLIER                  ");
+        `COMPARE:                     $write("COMPARE                     ");
+        `ADD_TO_SUM:                  $write("ADD_TO_SUM                  ");
+        `SHIFT:                       $write("SHIFT                       ");
+        `NUMBER_OF_SHIFTS:            $write("NUMBER_OF_SHIFTS            ");
+        `INCREMENT_NUMBER_OF_SHIFTS:  $write("INCREMENT_NUMBER_OF_SHIFTS  ");
+        `INCREMENT_NUMBER_OF_SHIFTS_1:$write("INCREMENT_NUMBER_OF_SHIFTS_1");
+        `DEDUCT_FROM_MULTIPLIER:      $write("DEDUCT_FROM_MULTIPLIER      ");
+        `SUM_BIGGER_M_SHIFT:          $write("SUM_BIGGER_M_SHIFT          ");
+        `DEDUCT_M_SHIFT_FROM_SUM:     $write("DEDUCT_M_SHIFT_FROM_SUM     ");
+        `DECREMENT_NUMBER_OF_SHIFTS:  $write("DECREMENT_NUMBER_OF_SHIFTS  ");
+      endcase
+    end
+  endtask
+
+
+
+  /*** Instanzierung von Spielzeug ****** ****************/
+  Modmodul mod(clk, ready, x, y, z, start, s);
+
+  /*** (4) Kurz nach jeder steigenden Taktflanke ***********/
+  /***     geben wir Zustand und Registerwerte aus.    *****/
+ //always @(posedge clk) #2
+  //    begin
+  //     print_state_name(mod.present_state);
+  //     $write("a=%d b=%d m=%d start=%b  a=%d b=%d m=%d res=%d ready=%b\n",
+  //             x, y, z, start, mod.a, mod.b, mod.m, s, ready);
+  //   end
+
+  /*** auf "ready" warten, dann den Speicherinhalt auf *********/
+  /*** die Konsole schreiben und $finish************************/
+ integer correct;
+  integer i;
+  integer j;
+  integer success;
+  integer fail;
+  initial 
+    begin
+      correct = 0;
+      success = 0;
+      fail = 0;
+      start = 0;
+
+
+
+
+      for (i = 0; i<128; i=i+1) 
+        for (j = 0; j<128; j=j+1)
+          begin
+            x = (i * $random) % 128;
+            y = (j * $random) % 128;
+            z = $random % 128;
+            if (z == 0) 
+            begin
+              z = z + 1;
+            end
+
+            #500
+            start = 1;
+            #200
+            start = 0;
+            #200; 
+            wait(ready);
+                correct = (x * y);
+                correct = (correct % z);
+                if (s == correct)
+                  begin
+                    success = success + 1;
+                    //$write("Success:----------------------------- %d\n", success);
+                  end
+                else
+                  begin
+                    fail = fail + 1;
+                    //$write("Fail:--------------------------------- %d\n", fail);
+                  end
+    
+          end 
+          $write("=====================================================\n");
+          $write("Testcirteria:\n\n" );
+          $write("i, j = 1 ... 50\n");
+          $write("x = (i * $random) mod 128\n");
+          $write("y = (j * $random) mod 128\n");
+          $write("z = $random mod 128\n");
+          $write("=====================================================\n");
+          $write("\n");
+          $write("=====================================================\n");
+          $write("Result Success: %d\n", success);
+          $write("Result Fail:    %d\n", fail);
+          $write("=====================================================\n");
+          $finish();
+    end
+
+
+endmodule
